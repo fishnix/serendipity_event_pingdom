@@ -124,23 +124,11 @@ class serendipity_event_pingdom extends serendipity_event
         if (isset($hooks[$event])) {
           switch($event) {
               case 'backend_frontpage_display':
-                // Init cURL
-                $curl = curl_init();
-                // Set target URL
-                curl_setopt($curl, CURLOPT_URL, "https://api.pingdom.com/api/2.0/reports.shared");
-                // Set the desired HTTP method (GET is default, see the documentation for each request)
-                curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "GET");
-                // Set user (email) and password
-                $auth = $this->get_config('pd_username') . ':' . $this->get_config('pd_password');
-                curl_setopt($curl, CURLOPT_USERPWD, $auth);
-                // Add a http header containing the application key (see the Authentication section of this document)
-                curl_setopt($curl, CURLOPT_HTTPHEADER, array("App-Key: " . $this->get_config('pd_appkey')));
-                // Ask cURL to return the result as a string
-                curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-
-                // Execute the request and decode the json result into an associative array
-                $response = json_decode(curl_exec($curl),true);
-
+              
+                $pd_url = 'https://api.pingdom.com/api/2.0/reports.shared';
+                $headers = array("App-Key: " . $this->get_config('pd_appkey'));
+                $response = $this->httpGETjson($pd_url, $this->get_config('pd_username'), $this->get_config('pd_password'), $headers);
+                
                 // Check for errors returned by the API
                 if (isset($response['error'])) {
                   $err_msg = 'Pingdom: ' . $response['error']['statusdesc'] . ': ' . $response['error']['errormessage'];
@@ -167,6 +155,28 @@ class serendipity_event_pingdom extends serendipity_event
       }
     }
 
+    /*
+      httpGETjson
+        params: 
+          url: URL to GET
+          auth_user: http basic user
+          auth_pass: http basic password
+          headers: array of headers
+    */
+    function httpGETjson($url, $auth_user, $auth_pass, $headers) {
+      
+      $curl = curl_init();
+      curl_setopt($curl, CURLOPT_URL, "https://api.pingdom.com/api/2.0/reports.shared");
+      curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "GET");
+      $auth = $this->get_config('pd_username') . ':' . $this->get_config('pd_password');
+      curl_setopt($curl, CURLOPT_USERPWD, $auth);
+      curl_setopt($curl, CURLOPT_HTTPHEADER, array("App-Key: " . $this->get_config('pd_appkey')));
+      curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+
+      // Execute the request and decode the json result into an associative array
+      return json_decode(curl_exec($curl),true);
+      
+    }
     
     function outputMSG($status, $msg) {
         switch($status) {
